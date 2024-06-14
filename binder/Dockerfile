@@ -8,6 +8,7 @@ ENV ROS_WS=${HOME}/workspace/ros
 # Install SWI Prolog 
 # Source: https://www.swi-prolog.org/build/PPA.html
 USER root
+RUN apt update
 RUN apt install -y software-properties-common && \
   apt-add-repository -y ppa:swi-prolog/stable
 RUN apt update && \
