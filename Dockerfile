@@ -59,7 +59,8 @@ RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && pip
 RUN git clone https://github.com/LAAS-HRI/CoHAN2.0 /home/CoHAN2.0
 RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && source /opt/ros/noetic/setup.bash && cd /home/CoHAN2.0 && ./compile.sh
 
-COPY --chown=${NB_USER}:users entrypoint.sh /entrypoint.sh
 WORKDIR /home/CoHAN2.0
+COPY --chown=${NB_USER}:users entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
+
 

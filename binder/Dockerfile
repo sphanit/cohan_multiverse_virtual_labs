@@ -1,4 +1,4 @@
-FROM multiverseframework/multiverse-tutorials:ubuntu-20.04@sha256:417be156a21aac849c2a6d43da695d6690d5a414677bef409b0b027b3aab7b1f
+FROM sphanit/cohan-virtual-labs:noetic
 
 ENV SHELL=/bin/bash \
     NB_USER=jovyan \
@@ -8,58 +8,44 @@ ENV SHELL=/bin/bash \
 
 USER root
 
-# Install the build tools
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt-get update
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    clang-format \
-    clangd-10 \ 
-    jq \
-    gcc-10 \
-    g++-10 \
-    libsdl-image1.2-dev \
-    libopenblas-dev \
-    python3-catkin-tools \
-    python3-pip \
-    python-is-python3
+# Install required packages and nodejs
+RUN apt-get update && \
+    apt-get install -y curl vim xvfb htop nodejs gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
 
-# Use update alternative to set gcc/g++ to latest version
-RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9
-RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 9
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10
+# Upgrade pip and install Python packages
+RUN pip install --upgrade pip && \
+    pip install "cython<3.0.0" wheel pyyaml==5.4.1 --no-build-isolation && \
+    pip install --no-cache-dir --ignore-installed \
+    notebook==6.4.12 jupyterlab==3.6.5 \
+    wstool pyOpenSSL==23.2.0 cryptography==38.0.4 \
+    jupyter-resource-usage jupyter-offlinenotebook \
+    jupyter-server-proxy jupyterlab-git jlab-enhanced-cell-toolbar \
+    autobahn twisted cbor2 empy==3.3.4 ipywidgets pymongo Pillow \
+    pycryptodomex simplejpeg tqdm \
+    https://raw.githubusercontent.com/yxzhan/jupyterlab-rviz/master/dist/jupyterlab_rviz-0.3.1.tar.gz
 
+# Set permissions
+RUN chown -R ${NB_UID} /home/Multiverse /home/Multiverse-Tutorials /opt/conda /home/CoHAN2.0
 
-# Install the dependecies for CoHAN
-RUN apt-get install ros-noetic-navigation -y \
-    ros-noetic-pr2-tuckarm \
-    ros-noetic-costmap-converter \
-    ros-noetic-libg2o \
-    ros-noetic-mbf-costmap-core \
-    ros-noetic-mbf-msgs \
-    libsqlite3-dev \
-    libzmq3-dev \
-    qtbase5-dev \
-    libqt5core5a \
-    libqt5gui5 \
-    libqt5widgets5 \
-    libsdl-image1.2-dev \
-    libyaml-cpp-dev \
-    libboost-all-dev \
-    ros-noetic-pr2-description \
-    ros-noetic-teleop-twist-keyboard \
-    ros-noetic-pr2-simulator \
-    ros-noetic-pr2-gazebo \
-    ros-noetic-teb-local-planner \
-    libsdl2-dev
+# Copy binder and fix ownership
+COPY --chown=${NB_USER}:users binder /home/binder
+RUN chown -R ${NB_UID} /home/${NB_USER}
 
-RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && pip install --upgrade pip && pip install cmake==3.31.1 && pip install scipy
+# Fix Solara permission issue
+ENV SOLARA_PROXY_CACHE_DIR=/home/${NB_USER}/.solara-cache
 
-# Git clone CoHAN repository and compile
-RUN git clone https://github.com/LAAS-HRI/CoHAN2.0 /home/CoHAN2.0
-RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && source /opt/ros/noetic/setup.bash && cd /home/CoHAN2.0 && ./compile.sh
+USER ${NB_USER}
 
-COPY --chown=${NB_USER}:users entrypoint.sh /entrypoint.sh
+# Install Oh-My-Bash and customize theme
+RUN bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --unattended && \
+    sed -i 's/OSH_THEME="font"/OSH_THEME="half-life"/' /home/${NB_USER}/.bashrc
+
+# Apply JupyterLab settings
+COPY --chown=${NB_USER}:users binder/jupyter-settings.json /usr/local/share/jupyter/lab/settings/overrides.json
+
+RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse" >> ~/.bashrc
+
 WORKDIR /home/CoHAN2.0
-ENTRYPOINT ["/entrypoint.sh"]
-
+ENTRYPOINT ["/home/binder/entrypoint.sh"]

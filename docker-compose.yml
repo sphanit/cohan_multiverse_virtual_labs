@@ -3,8 +3,8 @@ services:
     tty: true
     image: sphanit/cohan-virtual-labs:noetic
     build:
-      context: ../
-      dockerfile: ./binder/Dockerfile
+      context: ./
+      dockerfile: ./Dockerfile
     container_name: cohan-multiverse-binder-container
     command: jupyter lab --allow-root --no-browser --ip=0.0.0.0 --NotebookApp.token='' --NotebookApp.password=''
 
