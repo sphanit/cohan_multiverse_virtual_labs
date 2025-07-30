@@ -1,10 +1,10 @@
 FROM multiverseframework/multiverse-tutorials:ubuntu-20.04@sha256:417be156a21aac849c2a6d43da695d6690d5a414677bef409b0b027b3aab7b1f
 
 ENV SHELL=/bin/bash \
-    NB_USER=ryuk \
+    NB_USER=jovyan \
     NB_UID=1000 \
-    USER=ryuk \
-    HOME=/home/ryuk
+    USER=jovyan \
+    HOME=/home/jovyan
 
 USER root
 
@@ -62,3 +62,4 @@ RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && sou
 COPY --chown=${NB_USER}:users entrypoint.sh /entrypoint.sh
 WORKDIR /home/CoHAN2.0
 ENTRYPOINT ["/entrypoint.sh"]
+
