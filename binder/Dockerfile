@@ -1,2 +1,52 @@
 FROM sphanit/cohan-virtual-labs:noetic
 
+ENV SHELL=/bin/bash \
+    NB_USER=jovyan \
+    NB_UID=1000 \
+    USER=jovyan \
+    HOME=/home/jovyan
+
+USER root
+
+# Install required packages and nodejs
+RUN apt-get update && \
+    apt-get install -y curl vim xvfb htop nodejs gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# Upgrade pip and install Python packages
+RUN pip install --upgrade pip && \
+    pip install "cython<3.0.0" wheel pyyaml==5.4.1 --no-build-isolation && \
+    pip install --no-cache-dir --ignore-installed \
+        notebook==6.4.12 jupyterlab==3.6.5 \
+        wstool pyOpenSSL==23.2.0 cryptography==38.0.4 \
+        jupyter-resource-usage jupyter-offlinenotebook \
+        jupyter-server-proxy jupyterlab-git jlab-enhanced-cell-toolbar \
+        autobahn twisted cbor2 empy==3.3.4 ipywidgets pymongo Pillow \
+        pycryptodomex simplejpeg tqdm \
+        https://raw.githubusercontent.com/yxzhan/jupyterlab-rviz/master/dist/jupyterlab_rviz-0.3.1.tar.gz
+
+# Set permissions
+RUN chown -R ${NB_UID} /home/Multiverse /home/Multiverse-Tutorials /opt/conda
+
+# Copy binder and fix ownership
+COPY --chown=${NB_USER}:users binder /home/binder
+RUN chown -R ${NB_UID} /home/${NB_USER}
+
+# Fix Solara permission issue
+ENV SOLARA_PROXY_CACHE_DIR=/home/${NB_USER}/.solara-cache
+
+USER ${NB_USER}
+
+# Install Oh-My-Bash and customize theme
+RUN bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --unattended && \
+    sed -i 's/OSH_THEME="font"/OSH_THEME="half-life"/' /home/${NB_USER}/.bashrc
+
+# Apply JupyterLab settings
+COPY --chown=${NB_USER}:users binder/jupyter-settings.json /usr/local/share/jupyter/lab/settings/overrides.json
+
+RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse" >> ~/.bashrc
+
+WORKDIR /home
+ENTRYPOINT ["/home/binder/entrypoint.sh"]
+
