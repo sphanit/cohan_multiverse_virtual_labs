@@ -1,82 +1,65 @@
-# Dockerfile of the base image: https://github.com/IntEL4CoRo/docker-stacks/blob/master/Dockerfile
-FROM intel4coro/base-notebook:20.04-noetic-vnc
+FROM multiverseframework/multiverse-tutorials:ubuntu-20.04@sha256:417be156a21aac849c2a6d43da695d6690d5a414677bef409b0b027b3aab7b1f
 
-# Path to the default ROS workspace
-ENV ROS_WS=${HOME}/workspace/ros
+ENV SHELL=/bin/bash \
+    NB_USER=jovyan \
+    NB_UID=1000 \
+    USER=jovyan \
+    HOME=/home/jovyan
 
-#============= Install extra software packages =============#
-# Install SWI Prolog 
-# Source: https://www.swi-prolog.org/build/PPA.html
 USER root
-RUN apt update
-RUN apt install -y software-properties-common && \
-  apt-add-repository -y ppa:swi-prolog/stable
-RUN apt update && \
-  apt install -y swi-prolog
-ENV SWI_HOME_DIR=/usr/lib/swi-prolog
 
-# Install MongoDB Community Edition
-# Source: https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/#std-label-install-mdb-community-ubuntu
-ARG MONGODEB_VERSION=4.4
-RUN curl -fsSL https://www.mongodb.org/static/pgp/server-${MONGODEB_VERSION}.asc | \
-    gpg -o /usr/share/keyrings/mongodb-server-${MONGODEB_VERSION}.gpg --dearmor
-RUN echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-${MONGODEB_VERSION}.gpg ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/${MONGODEB_VERSION} multiverse" | \
-    tee /etc/apt/sources.list.d/mongodb-org-${MONGODEB_VERSION}.list
-RUN apt update && apt install -y mongodb-org
-RUN mkdir -p /data/db && \
-    chown -R ${NB_USER}:users /data/db 
+# Install the build tools
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt-get update
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    clang-format \
+    clangd-10 \ 
+    jq \
+    gcc-10 \
+    g++-10 \
+    libsdl-image1.2-dev \
+    libopenblas-dev \
+    python3-catkin-tools \
+    python3-pip \
+    python-is-python3
 
-# Install Knowrob
-# Source: https://knowrob.github.io/knowrob/
-USER ${NB_USER}
-WORKDIR ${ROS_WS}/src
-RUN wstool merge https://raw.github.com/knowrob/knowrob/master/rosinstall/knowrob-base.rosinstall && \
-    wstool update
+# Use update alternative to set gcc/g++ to latest version
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 9
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10
 
-# Switch to root user to install ROS dependencies
-# Source: http://wiki.ros.org/rosdep
-USER root
-RUN rosdep update && rosdep install -y -r --ignore-src --from-paths . && \
-    rosdep fix-permissions
 
-# Install jupyter knowrob kernel
-# Source: https://github.com/sasjonge/jupyter-knowrob
-USER ${NB_USER}
-WORKDIR ${HOME}
-RUN git clone https://github.com/sasjonge/jupyter-knowrob.git --recurse-submodules
-RUN cd jupyter-knowrob && pip install .
-ARG JK_KERNEL=${HOME}/.local/share/jupyter/kernels/jknowrob
-RUN mkdir -p ${JK_KERNEL} && \
-    cp jupyter-knowrob/kernel.json ${JK_KERNEL}
-RUN cp -R ${HOME}/jupyter-knowrob/knowrob_cloud ${ROS_WS}/src/
-COPY --chown=${NB_USER}:users prolog /prolog
+# Install the dependecies for CoHAN
+RUN apt-get install ros-noetic-navigation -y \
+    ros-noetic-pr2-tuckarm \
+    ros-noetic-costmap-converter \
+    ros-noetic-libg2o \
+    ros-noetic-mbf-costmap-core \
+    ros-noetic-mbf-msgs \
+    libsqlite3-dev \
+    libzmq3-dev \
+    qtbase5-dev \
+    libqt5core5a \
+    libqt5gui5 \
+    libqt5widgets5 \
+    libsdl-image1.2-dev \
+    libyaml-cpp-dev \
+    libboost-all-dev \
+    ros-noetic-pr2-description \
+    ros-noetic-teleop-twist-keyboard \
+    ros-noetic-pr2-simulator \
+    ros-noetic-pr2-gazebo \
+    ros-noetic-teb-local-planner \
+    libsdl2-dev
 
-# Build catkin workspace
-# Source: https://catkin-tools.readthedocs.io/en/latest/verbs/catkin_build.html
-USER ${NB_USER}
-WORKDIR ${ROS_WS}
-RUN catkin build
+RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && pip install --upgrade pip && pip install cmake==3.31.1 && pip install scipy
 
-# Download the example neem data
-USER root
-RUN mkdir /neem_data && chown ${NB_USER}:users /neem_data
-USER ${NB_USER}
-RUN cd /neem_data && \
-    wget https://seafile.zfn.uni-bremen.de/f/b66a71b257084d459b6c/?dl=1 -O example_neem.zip && \
-    unzip example_neem.zip && \
-    mv example_neem/* ./ && \
-    rm -r example_neem example_neem.zip
-#===========================================================#
+# Git clone CoHAN repository and compile
+RUN git clone https://github.com/LAAS-HRI/CoHAN2.0 /home/CoHAN2.0
+RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && source /opt/ros/noetic/setup.bash && cd /home/CoHAN2.0 && ./compile.sh
 
-# Copy content to the image
-ENV REPO_DIR=${HOME}/work
-WORKDIR ${REPO_DIR}
-COPY --chown=${NB_USER}:users . ${REPO_DIR}/
-
-# Create a symbolic link to the ROS workspace under the working directory
-RUN ln -s ${ROS_WS} ${PWD}/ROS_WS
-
-# The entrypoint of the docker image
 COPY --chown=${NB_USER}:users binder/entrypoint.sh /entrypoint.sh
+WORKDIR /home/CoHAN2.0
 ENTRYPOINT ["/entrypoint.sh"]
 
