@@ -47,5 +47,5 @@ COPY --chown=${NB_USER}:users binder/jupyter-settings.json /usr/local/share/jupy
 
 RUN echo "source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse" >> ~/.bashrc
 
-WORKDIR /home/CoHAN2.0
+WORKDIR /home/
 ENTRYPOINT ["/home/binder/entrypoint.sh"]
