@@ -1,4 +1,4 @@
-FROM multiverseframework/multiverse-tutorials:ubuntu-20.04@sha256:417be156a21aac849c2a6d43da695d6690d5a414677bef409b0b027b3aab7b1f
+FROM multiverseframework/multiverse-tutorials:ubuntu-20.04@sha256:e7051bfc23afc5e908993cffe9e0f45bb85ae599edebce762150ce748ee93013
 
 ENV SHELL=/bin/bash \
     NB_USER=jovyan \
@@ -58,8 +58,6 @@ RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && pip
 # Git clone CoHAN repository and compile
 RUN git clone https://github.com/LAAS-HRI/CoHAN2.0 /home/CoHAN2.0
 RUN source /opt/conda/etc/profile.d/conda.sh && conda activate multiverse && source /opt/ros/noetic/setup.bash && cd /home/CoHAN2.0 && ./compile.sh
-
-COPY laas /home/Multiverse-Tutorials/resources/laas
 
 WORKDIR /home
 COPY --chown=${NB_USER}:users entrypoint.sh /entrypoint.sh

@@ -1,4 +1,4 @@
-FROM sphanit/cohan-virtual-labs:noetic@sha256:79d8ca6ffc7baf005d538e0c58f9aec19d66df83b8fcf33bab61215429eb0397
+FROM sphanit/cohan-virtual-labs:noetic@sha256:afa4b7df592128c4cacbe0cc078bbca2cc71623717679972e69d92f8f053b624
 
 ENV SHELL=/bin/bash \
     NB_USER=jovyan \
