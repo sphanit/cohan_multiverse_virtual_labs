@@ -3,11 +3,11 @@ This repository provides online implementation of [CoHAN2.0](https://github.com/
 
 You can use this framework in two ways: on the cloud or locally.
 
-## Run Multiverse Docker on the Cloud using BinderHub
+## Run CoHAN-Multiverse Docker on the Cloud using BinderHub
 
 - [Link to the BinderHub](https://binder.intel4coro.de/v2/gh/sphanit/cohan_multiverse_virtual_labs/HEAD)
 
-## Run Multiverse Docker locally
+## Run CoHAN-Multiverse Docker locally
 
 ### Prerequisites
 
